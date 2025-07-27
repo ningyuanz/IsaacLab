@@ -25,7 +25,6 @@ class EventCfg:
     """Configuration for randomization."""
 
     # Randomize body materials
-    # FIXME: only randomize body material of links that will have contacts
     physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
@@ -38,21 +37,18 @@ class EventCfg:
         },
     )
 
-    # FIXME: change body_names to match the usd of H1
-    # FIXME: change mass_distribution_params based on mass of H1 torso
     # Randomize torso mass
     add_torso_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "mass_distribution_params": (-0.5, 0.5),
+            "mass_distribution_params": (-0.5, 0.5),    # H1 torso has a mass of 17.789
             "operation": "add",
         },
     )
 
-    # FIXME: Change ROOT STATE to torso? Check usd to make sure
-    # Randomize ROOT STATE
+    # Randomize root state
     reset_torso = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -81,7 +77,7 @@ class H1SoccerEnvCfg(DirectRLEnvCfg):
     decimation = 2
     action_scale = 1.0
     action_space = 19
-    observation_space = 69
+    observation_space = 69 + 18  # 69 for proprioceptive obs, 18 for the soccer ball
     state_space = 0
 
     # Simulation
@@ -113,12 +109,11 @@ class H1SoccerEnvCfg(DirectRLEnvCfg):
     )
 
     # Scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=4.0, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=7.0, replicate_physics=True)
 
     # Events
     events: EventCfg = EventCfg()
 
-    # FIXME: Use contact sensors
     # Robot
     robot: ArticulationCfg = H1_MINIMAL_CFG.replace(prim_path="/World/envs/env_.*/Robot")
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
@@ -146,9 +141,8 @@ class H1SoccerEnvCfg(DirectRLEnvCfg):
         50.0,  # right_elbow
     ]
 
-    # FIXME: Make sure z value in (0.0, 0.0, 0.15) is correct.
     # Soccer
-    soccer = RigidObjectCfg(
+    soccer: RigidObjectCfg = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Soccer",
         spawn=sim_utils.SphereCfg(
             radius=0.105,
@@ -169,6 +163,7 @@ class H1SoccerEnvCfg(DirectRLEnvCfg):
         ),
         init_state=RigidObjectCfg.InitialStateCfg(),
     )
+    soccer_init_pos: list = [6.0, 0.0, 0.15]
 
     # Rewards weights
     heading_weight: float = 0.5
@@ -184,6 +179,8 @@ class H1SoccerEnvCfg(DirectRLEnvCfg):
 
     angular_velocity_scale: float = 0.25
     contact_force_scale: float = 0.01
+    
+    shooting_direction_weight: float = 20.0
     
 
 
